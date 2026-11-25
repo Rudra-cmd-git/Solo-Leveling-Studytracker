@@ -35,6 +35,27 @@ if (!url || !key) {
   process.exit(2);
 }
 
+// A placeholder is worse than an empty value: it looks configured and turns into
+// a DNS failure deep inside a request. Reject it before touching the network.
+const PLACEHOLDER = /YOUR_PROJECT_REF|your-project|placeholder|changeme|<.*>/i;
+if (PLACEHOLDER.test(url) || PLACEHOLDER.test(key)) {
+  console.error(
+    `.env.local still contains the .env.example placeholder values.\n` +
+      `  URL reads: ${url.replace(/[a-z0-9_-]{4,}/gi, (m) => m.slice(0, 4) + "...")}\n` +
+      `Fill in the real values from Supabase > Project Settings > API:\n` +
+      `  NEXT_PUBLIC_SUPABASE_URL=https://<20-char-project-ref>.supabase.co\n` +
+      `  NEXT_PUBLIC_SUPABASE_ANON_KEY=<the anon or sb_publishable_ key>\n` +
+      `The project ref is lowercase letters and digits only - no underscores.`,
+  );
+  process.exit(2);
+}
+
+if (!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/i.test(url.replace(/\/$/, ""))) {
+  console.error(`NEXT_PUBLIC_SUPABASE_URL does not look like a Supabase project URL: ${url}`);
+  console.error("Expected something like https://abcdefghijklmnopqrst.supabase.co");
+  process.exit(2);
+}
+
 const headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
 const results = [];
 
@@ -44,7 +65,15 @@ function record(ok, label, detail) {
 }
 
 async function call(path, init = {}) {
-  const response = await fetch(`${url.replace(/\/$/, "")}${path}`, { ...init, headers: { ...headers, ...(init.headers ?? {}) } });
+  let response;
+  try {
+    response = await fetch(`${url.replace(/\/$/, "")}${path}`, { ...init, headers: { ...headers, ...(init.headers ?? {}) } });
+  } catch (error) {
+    // Network-level failure: report it once, clearly, instead of an unhandled
+    // rejection halfway through the checklist.
+    record(false, `cannot reach ${url}`, error?.cause?.code ?? error?.message ?? "network error");
+    return { status: 0, body: null };
+  }
   let body = null;
   try {
     body = await response.json();
