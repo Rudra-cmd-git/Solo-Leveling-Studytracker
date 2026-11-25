@@ -1,26 +1,497 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   HUNTER SYSTEM — design tokens
+   The System interface: near-black void, deep navy glass, cyan circuitry,
+   violet for the rare, gold for the exceptional.
+   ========================================================================== */
+
+@theme {
+  --color-void: #04060c;
+  --color-abyss: #060a13;
+  --color-navy: #0a1120;
+  --color-navy-soft: #101c31;
+  --color-line: #1a2b45;
+  --color-line-bright: #24415f;
+  --color-cyan: #38e1ff;
+  --color-cyan-deep: #0fa8c9;
+  --color-azure: #3b7dff;
+  --color-violet: #a06bff;
+  --color-gold: #f5c451;
+  --color-ember: #ff6b6b;
+  --color-mint: #34d399;
+  --color-text: #dde9f8;
+  --color-muted: #86a0bf;
+  --color-faint: #56708f;
+
+  --font-display: var(--font-rajdhani), "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --animate-rise: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-rise-slow: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade: fade 0.35s ease-out both;
+  --animate-system-in: system-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pulse-glow: pulse-glow 3.2s ease-in-out infinite;
+  --animate-scan: scan 4.5s linear infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-burst: burst 0.9s ease-out both;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --rank-f: #7c8ba1;
+  --rank-e: #34d399;
+  --rank-d: #38bdf8;
+  --rank-c: #818cf8;
+  --rank-b: #c084fc;
+  --rank-a: #fb7185;
+  --rank-s: #fbbf24;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+* {
+  border-color: color-mix(in oklab, var(--color-line) 80%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-void);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-cyan) 35%, transparent);
+  color: #02121a;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--color-cyan) 80%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Thin, quiet scrollbars that suit the interface. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e3352 transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(#1c3350, #12233a);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ==========================================================================
+   Atmosphere — the System's ambient field
+   ========================================================================== */
+
+.system-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 620px at 12% -10%, rgba(47, 125, 255, 0.16), transparent 60%),
+    radial-gradient(760px 520px at 88% 0%, rgba(160, 107, 255, 0.13), transparent 62%),
+    radial-gradient(1000px 700px at 50% 110%, rgba(56, 225, 255, 0.09), transparent 60%),
+    linear-gradient(180deg, #05080f 0%, #04060c 45%, #05080f 100%);
+}
+
+.system-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(56, 225, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 225, 255, 0.055) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 25%, transparent 78%);
+  opacity: 0.75;
+}
+
+.system-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.012) 0px,
+    rgba(255, 255, 255, 0.012) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   Panels — holographic glass with clipped corners
+   ========================================================================== */
+
+.panel {
+  position: relative;
+  border-radius: 14px;
+  background:
+    linear-gradient(155deg, rgba(15, 27, 47, 0.88) 0%, rgba(7, 12, 22, 0.94) 55%, rgba(9, 16, 29, 0.9) 100%);
+  border: 1px solid rgba(56, 225, 255, 0.13);
+  box-shadow:
+    inset 0 1px 0 rgba(160, 210, 255, 0.07),
+    inset 0 0 60px -30px rgba(56, 225, 255, 0.35),
+    0 26px 60px -34px rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+
+.panel-quiet {
+  background:
+    linear-gradient(155deg, rgba(12, 21, 37, 0.7) 0%, rgba(6, 10, 19, 0.82) 100%);
+  border-color: rgba(120, 165, 220, 0.1);
+  box-shadow: inset 0 1px 0 rgba(160, 210, 255, 0.05);
+}
+
+.panel-glow::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(56, 225, 255, 0.55), transparent 35%, transparent 65%, rgba(160, 107, 255, 0.45));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Corner brackets, rendered as spans inside <Panel corners>. */
+.corner {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-color: color-mix(in oklab, var(--color-cyan) 70%, transparent);
+  opacity: 0.75;
+  pointer-events: none;
+}
+.corner-tl { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; border-top-left-radius: 6px; }
+.corner-tr { top: -1px; right: -1px; border-top: 1px solid; border-right: 1px solid; border-top-right-radius: 6px; }
+.corner-bl { bottom: -1px; left: -1px; border-bottom: 1px solid; border-left: 1px solid; border-bottom-left-radius: 6px; }
+.corner-br { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; border-bottom-right-radius: 6px; }
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+.font-hud {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hud-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.glow-text {
+  color: #eafaff;
+  text-shadow: 0 0 18px rgba(56, 225, 255, 0.55), 0 0 42px rgba(56, 225, 255, 0.25);
+}
+
+.gold-text {
+  color: #ffe9b0;
+  text-shadow: 0 0 20px rgba(245, 196, 81, 0.45);
+}
+
+/* ==========================================================================
+   Rank badges
+   ========================================================================== */
+
+.rank-badge {
+  --rank-color: var(--rank-f);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--rank-color) 55%, transparent);
+  background: color-mix(in oklab, var(--rank-color) 14%, transparent);
+  color: color-mix(in oklab, var(--rank-color) 78%, white);
+  box-shadow: 0 0 18px -6px color-mix(in oklab, var(--rank-color) 70%, transparent);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rank-F { --rank-color: var(--rank-f); }
+.rank-E { --rank-color: var(--rank-e); }
+.rank-D { --rank-color: var(--rank-d); }
+.rank-C { --rank-color: var(--rank-c); }
+.rank-B { --rank-color: var(--rank-b); }
+.rank-A { --rank-color: var(--rank-a); }
+.rank-S {
+  --rank-color: var(--rank-s);
+  box-shadow: 0 0 26px -4px color-mix(in oklab, var(--rank-s) 65%, transparent);
+}
+
+/* ==========================================================================
+   Bars
+   ========================================================================== */
+
+.stat-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(6, 12, 22, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(120, 170, 230, 0.13), inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.stat-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-azure), var(--color-cyan));
+  box-shadow: 0 0 16px -2px rgba(56, 225, 255, 0.8);
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.38) 50%,
+    transparent 80%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 2.6s linear infinite;
+  mix-blend-mode: screen;
+}
+
+.stat-fill-violet {
+  background: linear-gradient(90deg, #6d3bd8, var(--color-violet));
+  box-shadow: 0 0 16px -2px rgba(160, 107, 255, 0.85);
+}
+
+.stat-fill-gold {
+  background: linear-gradient(90deg, #b8860b, var(--color-gold));
+  box-shadow: 0 0 18px -2px rgba(245, 196, 81, 0.8);
+}
+
+.stat-fill-mint {
+  background: linear-gradient(90deg, #0f9d75, var(--color-mint));
+  box-shadow: 0 0 16px -2px rgba(52, 211, 153, 0.7);
+}
+
+/* Segmented HUD meter used for attributes */
+.hud-segments {
+  display: flex;
+  gap: 3px;
+}
+.hud-segment {
+  height: 6px;
+  flex: 1;
+  border-radius: 1px;
+  background: rgba(120, 170, 230, 0.13);
+}
+.hud-segment-on {
+  background: linear-gradient(90deg, var(--color-azure), var(--color-cyan));
+  box-shadow: 0 0 10px -2px rgba(56, 225, 255, 0.85);
+}
+
+/* ==========================================================================
+   Controls
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:active { transform: translateY(1px) scale(0.995); }
+.btn:disabled { opacity: 0.5; pointer-events: none; }
+
+.btn-primary {
+  color: #001018;
+  background: linear-gradient(135deg, #6ff2ff, var(--color-cyan) 40%, #2f9dff);
+  box-shadow: 0 0 0 1px rgba(56, 225, 255, 0.5), 0 12px 34px -14px rgba(56, 225, 255, 0.9);
+}
+.btn-primary:hover {
+  box-shadow: 0 0 0 1px rgba(120, 240, 255, 0.85), 0 16px 44px -12px rgba(56, 225, 255, 1);
+}
+
+.btn-ghost {
+  color: #cfe2f5;
+  background: rgba(16, 28, 49, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(120, 170, 230, 0.18);
+}
+.btn-ghost:hover {
+  background: rgba(24, 40, 66, 0.85);
+  color: #eaf6ff;
+  box-shadow: inset 0 0 0 1px rgba(120, 190, 255, 0.35);
+}
+
+.btn-danger {
+  color: #ffd9d9;
+  background: rgba(60, 18, 24, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.3);
+}
+.btn-danger:hover {
+  background: rgba(84, 24, 32, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.55);
+}
+
+.field {
+  width: 100%;
+  border-radius: 9px;
+  background: rgba(5, 10, 19, 0.75);
+  border: 1px solid rgba(120, 170, 230, 0.16);
+  color: var(--color-text);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.field::placeholder { color: #4f688a; }
+.field:hover { border-color: rgba(120, 175, 235, 0.28); }
+.field:focus {
+  outline: none;
+  border-color: rgba(56, 225, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(56, 225, 255, 0.13), inset 0 0 22px -12px rgba(56, 225, 255, 0.7);
+  background: rgba(6, 13, 24, 0.9);
+}
+.field-invalid { border-color: rgba(255, 107, 107, 0.6); }
+
+select.field {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #6f8cad 50%),
+    linear-gradient(135deg, #6f8cad 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+select.field option { background: #0a1120; color: var(--color-text); }
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes system-in {
+  0% { opacity: 0; transform: translateY(-10px) scale(0.97); filter: blur(8px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes scan {
+  0% { transform: translateY(-110%); opacity: 0; }
+  12% { opacity: 0.85; }
+  88% { opacity: 0.85; }
+  100% { transform: translateY(760%); opacity: 0; }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -60% 0; }
+}
+
+@keyframes burst {
+  0% { opacity: 0; transform: scale(0.7); }
+  35% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+/* Notification card entrance */
+.notif-enter {
+  animation: system-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 0.98;
+}
+
+/* Decorative rule with a bright start, used under headings */
+.hud-rule {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(56, 225, 255, 0.7), rgba(56, 225, 255, 0.08) 40%, transparent 80%);
+}
+
+/* ==========================================================================
+   Motion preferences
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stat-fill::after { display: none; }
 }
