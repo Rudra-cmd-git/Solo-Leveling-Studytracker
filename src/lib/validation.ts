@@ -130,6 +130,10 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
 export function describeDatabaseError(message: string | undefined): string {
   if (!message) return "The System rejected that request.";
   if (message.includes("NOT_AUTHENTICATED")) return "Your session expired. Sign in again.";
+  if (message.includes("NOT_AUTHORISED")) return "Only System staff can do that.";
+  if (message.includes("CANNOT_CHANGE_OWN_ROLE")) return "You cannot change your own role.";
+  if (message.includes("ADMIN_GRANT_REQUIRES_OWNER"))
+    return "Admin rights can only be granted by the project owner.";
   if (message.includes("SESSION_ALREADY_ACTIVE")) return "You already have a session running.";
   if (message.includes("RATE_LIMITED")) return "Too many requests. Wait a moment and retry.";
   if (message.includes("INVALID_SUBJECT")) return "That subject is not yours.";

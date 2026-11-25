@@ -29,6 +29,7 @@ No paid APIs, no AI services, no paid UI kits, no paid fonts, no domain required
 | Friends | Request by handle, accept or decline, one row per pair. Only public level, rank and XP are shared. The friends board ranks you and your roster even when a member opted out of the global board (private hunters stay excluded). |
 | Guilds | One guild per hunter (enforced by a unique index, not by convention). Leader / officer / member roles, join and leave RPCs, leadership hand-over on departure, dissolution when empty. Guild score is the sum of members' verified XP — a guild has no XP path of its own. |
 | Seasons | Monthly competition. The catalog is generated from the database clock (no cron, no manual seeding), standings count only XP earned inside the window, and the previous season's top three stay on display. Season XP never touches lifetime XP or rank. |
+| Moderation console | `/admin`, staff only (the route 404s for everyone else rather than advertising itself). Read-only telemetry plus role assignment. Admins cannot change their own role and cannot grant `admin` through the API — that first admin is set by the project owner in the SQL editor. |
 | Privacy | Public profile toggle, leaderboard opt-out, email never exposed, private notes never published. |
 | Mobile | Responsive from 390 px to 1600 px with zero horizontal overflow (verified by script). |
 
@@ -82,6 +83,7 @@ Open **SQL Editor** in the Supabase dashboard and run each file in
 | `0010_guilds.sql` | `guilds` + `guild_members` tables + RLS, create/join/leave/role RPCs, `guild_leaderboard()`, `guild_detail()` |
 | `0011_seasons.sql` | `seasons` catalog (generated), `current_season()`, `season_leaderboard()`, `previous_season_summary()`, `my_season_standing()`, PUBLIC-execute hardening |
 | `0012_public_profile_columns.sql` | Column-level grants on `profiles`: anonymous readers get the public hunter card only, not `timezone`, `daily_goal_minutes`, `role` or `last_study_date` |
+| `0013_admin_console.sql` | `is_staff()`, `admin_overview()`, `admin_hunters()`, `admin_set_role()` — staff-only telemetry and role assignment |
 
 With the Supabase CLI instead:
 
@@ -250,7 +252,7 @@ npm run lint           # ESLint (next/core-web-vitals)
 npm run build          # production build, 17 routes
 ```
 
-### Database test suite (247 assertions)
+### Database test suite (269 assertions)
 
 `scripts/db-test.mjs` recreates a scratch database, applies all migrations and
 runs `supabase/tests/10_engine_tests.sql`, which exercises the real logic:
@@ -275,7 +277,7 @@ npm run db:test
 columns against the live schema and function grants. Current result:
 
 ```
-Contract check passed: 46 RPC calls, 19 table references, 51 columns verified.
+Contract check passed: 50 RPC calls, 19 table references, 51 columns verified.
 ```
 
 ### Responsive layout
@@ -372,7 +374,6 @@ pretends otherwise — there are no stubs or dead buttons for them:
 - Direct messages (explicitly out of scope for the MVP)
 - Email digests or push notifications (in-app notifications only)
 - Realtime multiplayer presence
-- Admin moderation console
 
 ---
 
@@ -424,3 +425,19 @@ Rules that the database enforces rather than the UI:
   deleted when its last member goes;
 - private hunters are excluded from every board, including the friends one;
 - opting out of the leaderboard also removes you from season standings.
+
+### Becoming the first admin
+
+The moderation console at `/admin` is invisible (404) unless your profile role is
+`moderator` or `admin`, and the API refuses to grant `admin` � that is deliberate,
+so nobody can escalate through the UI. The project owner sets it once, in the
+Supabase SQL editor:
+
+```sql
+update public.profiles set role = 'admin' where username = 'your_handle';
+```
+
+From then on that admin can promote others to `moderator` from the console, and
+demote them again. Admins can never change their own role, so the console always
+keeps at least the owner account as staff. To hand the owner role to someone else,
+run the same SQL for their handle.

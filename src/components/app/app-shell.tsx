@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, Plus, Sparkles, X } from "lucide-react";
-import { NAV_GROUPS, navItemForPath } from "@/lib/nav";
+import { navGroupsFor, navItemForPath } from "@/lib/nav";
 import { levelProgress, rankProgress } from "@/lib/progression";
 import type { NotificationRow, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -108,7 +108,7 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 pb-2">
-          {NAV_GROUPS.map((group) => (
+          {navGroupsFor(profile.role).map((group) => (
             <div key={group.label} className="mb-3">
               <p className="hud-label px-2 pb-1.5 pt-1">{group.label}</p>
               <ul className="space-y-0.5">

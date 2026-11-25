@@ -333,6 +333,19 @@ if (!hunterA.token || !hunterB.token) {
   }
 }
 
+// 10. Moderation console (requires 0013)
+for (const [fn, body] of [
+  ["admin_overview", {}],
+  ["admin_hunters", { p_limit: 5, p_search: null }],
+]) {
+  const probe = await call(`/rest/v1/rpc/${fn}`, { method: "POST", body: JSON.stringify(body) });
+  if (missingFunction(probe)) {
+    record(false, `${fn}() function`, "missing - apply 0013_admin_console.sql");
+  } else {
+    record(probe.status >= 400, `${fn}() refuses anonymous callers`, `status ${probe.status}`);
+  }
+}
+
 const failed = results.filter((result) => !result.ok);
 console.log(
   failed.length === 0

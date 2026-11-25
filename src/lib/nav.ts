@@ -10,6 +10,7 @@ import {
   User,
   BookOpen,
   Shield,
+  ShieldCheck,
   Users,
   Flame,
   type LucideIcon,
@@ -59,6 +60,18 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
+
+/** Shown only to hunters holding the moderator or admin role. */
+export const STAFF_GROUP: NavGroup = {
+  label: "Ops",
+  items: [
+    { href: "/admin", label: "Console", icon: ShieldCheck, description: "Moderation telemetry and roles" },
+  ],
+};
+
+export function navGroupsFor(role: string | null | undefined): NavGroup[] {
+  return role === "admin" || role === "moderator" ? [...NAV_GROUPS, STAFF_GROUP] : NAV_GROUPS;
+}
 
 export function navItemForPath(pathname: string): NavItem | null {
   const match = ALL_ITEMS.find(

@@ -382,3 +382,35 @@ export interface PreviousSeason {
     period_xp: number;
   }>;
 }
+
+/* ------------------------------------------------------------------ admin -- */
+
+export type HunterRole = "hunter" | "moderator" | "admin";
+
+export interface AdminOverview {
+  hunters: number;
+  new_last_7d: number;
+  active_today: number;
+  sessions: number;
+  minutes: number;
+  xp_awarded: number;
+  guilds: number;
+  friendships: number;
+  staff: number;
+}
+
+export interface AdminHunterRow {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  hunter_rank: RankCode;
+  level: number;
+  xp_total: number;
+  sessions: number;
+  current_streak: number;
+  hunter_role: HunterRole;
+  is_public: boolean;
+  last_study_date: string | null;
+  created_at: string;
+}
