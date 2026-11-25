@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignUpForm } from "@/components/auth/signup-form";
 import { ConfigNotice } from "@/components/auth/config-notice";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isSupabaseConfigured, describeSupabaseConfig } from "@/lib/supabase/env";
 
 export const metadata: Metadata = {
   title: "Awaken",
@@ -16,7 +16,7 @@ export default function SignUpPage() {
       title="Begin your awakening."
       subtitle="Register to receive a Hunter ID. You will start at Level 1 and F-Rank, with nothing but your own focus to build on."
     >
-      {isSupabaseConfigured ? null : <ConfigNotice />}
+      {isSupabaseConfigured ? null : <ConfigNotice {...describeSupabaseConfig()} />}
       <SignUpForm />
     </AuthShell>
   );

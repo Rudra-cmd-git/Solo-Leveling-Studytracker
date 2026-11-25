@@ -35,3 +35,30 @@ export function assertSupabaseConfigured(): void {
     );
   }
 }
+
+export type ConfigState = "set" | "placeholder" | "missing";
+
+/**
+ * What this process actually sees, for the offline banner.
+ *
+ * NEXT_PUBLIC_* values are inlined at build time, so on a host like Vercel this
+ * reflects the build that produced the running deployment - not the current
+ * dashboard settings. That distinction is the most common reason the banner
+ * keeps appearing after the variables were "added".
+ */
+export function describeSupabaseConfig(): {
+  url: ConfigState;
+  key: ConfigState;
+  configured: boolean;
+  environment: string;
+} {
+  const classify = (value: string): ConfigState =>
+    value.trim().length === 0 ? "missing" : PLACEHOLDER.test(value) ? "placeholder" : "set";
+
+  return {
+    url: classify(SUPABASE_URL),
+    key: classify(SUPABASE_ANON_KEY),
+    configured: isSupabaseConfigured,
+    environment: process.env.NODE_ENV ?? "unknown",
+  };
+}
