@@ -105,6 +105,21 @@ if (settings.status === 200) {
   record(false, "Auth service reachable", `status ${settings.status}`);
 }
 
+// Provider status is reported, not asserted: enabling OAuth needs the project
+// owner's Google Cloud credentials, so a missing provider is advice, not a bug.
+if (settings.status === 200) {
+  const enabled = Object.entries(settings.body?.external ?? {})
+    .filter(([, on]) => on === true)
+    .map(([name]) => name);
+  console.log(`note  sign-in providers enabled: ${enabled.join(", ") || "none"}`);
+  if (!enabled.includes("google")) {
+    console.log(
+      "note  Google sign-in is off. Enable it in Authentication > Providers > Google;" +
+        " see README step 5. The button already exists and will report a clear error until then.",
+    );
+  }
+}
+
 // 2. Catalog seeded (requires 0006)
 const catalog = await call("/rest/v1/achievements?select=code&limit=1");
 if (catalog.status === 200 && Array.isArray(catalog.body)) {

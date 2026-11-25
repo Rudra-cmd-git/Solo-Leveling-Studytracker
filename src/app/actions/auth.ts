@@ -110,6 +110,33 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   redirect(destination);
 }
 
+/**
+ * Google (or any other enabled OAuth provider) sign-in.
+ *
+ * The verifier cookie is written by this Server Action, which can set cookies -
+ * unlike a Server Component - and read back by /auth/callback when Google
+ * redirects the hunter to us with a one-time code.
+ */
+export async function signInWithGoogleAction(formData: FormData): Promise<void> {
+  if (!isSupabaseConfigured) redirect("/login?error=not_configured");
+
+  const requested = String(formData.get("next") ?? "").trim();
+  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/awakening";
+
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+      queryParams: { prompt: "select_account" },
+    },
+  });
+
+  if (error || !data?.url) redirect("/login?error=oauth_unavailable");
+
+  redirect(data.url);
+}
+
 export async function logoutAction(): Promise<void> {
   if (isSupabaseConfigured) {
     const supabase = await createServerSupabase();

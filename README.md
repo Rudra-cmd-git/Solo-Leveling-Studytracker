@@ -130,6 +130,36 @@ add it for your own scripts, keep it server-side only.
   for local work and add `https://<your-app>.vercel.app/auth/callback` as a
   redirect URL when you deploy.
 
+#### Google sign-in (optional, 5 minutes)
+
+The "Continue with Google" button is already wired up in both auth forms. It
+stays inert until the provider is enabled, and reports a clear message if you
+click it early. To switch it on:
+
+1. <https://console.cloud.google.com> → create a project → **APIs & Services →
+   OAuth consent screen** → External → fill in the app name and your email →
+   **Save**. Add your own Google account as a *test user* while the app is
+   unverified; that is enough for personal use.
+2. **APIs & Services → Credentials → Create credentials → OAuth client ID** →
+   type **Web application**.
+3. Under **Authorized redirect URIs** add exactly:
+
+   ```text
+   https://<your-project-ref>.supabase.co/auth/v1/callback
+   ```
+
+   This is Supabase's callback, **not** your app's `/auth/callback` — Supabase
+   receives Google's answer and then hands a one-time code to your app.
+4. Copy the **Client ID** and **Client secret**.
+5. Supabase dashboard → **Authentication → Providers → Google** → enable, paste
+   both values, **Save**.
+6. Confirm with `npm run verify:supabase` — the first lines now report
+   `sign-in providers enabled: email, google`.
+
+A Google sign-up creates a Hunter with a generated handle such as
+`hunter_9f3c2a71`. They can rename it in **Settings → Hunter handle**; the
+unique index keeps it collision-free either way.
+
 ### 6. Run
 
 ```powershell
@@ -465,5 +495,5 @@ works on your project. It creates a throwaway hunter, starts a real session,
 waits past `min_session_seconds`, heartbeats, completes it, and asserts four
 things: XP went up, the XP ledger matches the profile total, replaying
 `complete_study_session` pays nothing the second time, and the account is removed
-afterwards. It takes about 80 seconds because it waits for real study time �
+afterwards. It takes about 80 seconds because it waits for real study time �
 there is no shortcut, which is the point.

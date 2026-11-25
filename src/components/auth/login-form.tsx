@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect } from "react";
 import { Loader2, TriangleAlert } from "lucide-react";
 import { loginAction, type AuthState } from "@/app/actions/auth";
+import { GoogleButton, OrDivider } from "@/components/auth/google-button";
 
 const INITIAL: AuthState = { status: "idle" };
 
@@ -23,7 +24,11 @@ export function LoginForm({ next }: { next?: string }) {
   }, []);
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <div className="space-y-4">
+      <GoogleButton next={next} label="Sign in with Google" />
+      <OrDivider />
+
+      <form action={formAction} className="space-y-4" noValidate>
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <input type="hidden" name="timezone" value="UTC" data-timezone-field />
 
@@ -74,6 +79,7 @@ export function LoginForm({ next }: { next?: string }) {
           Register
         </Link>
       </p>
-    </form>
+      </form>
+    </div>
   );
 }

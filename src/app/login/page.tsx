@@ -17,6 +17,15 @@ export default async function LoginPage({
   const params = await searchParams;
   const next = params.next?.startsWith("/") ? params.next : undefined;
 
+  const errors: Record<string, string> = {
+    profile_missing: "That account has no Hunter record. Try signing up again or contact the operator.",
+    link_expired: "That link has expired. Request a new one from the sign-in form.",
+    oauth_unavailable:
+      "Google sign-in is not configured on this project yet. Enable the Google provider in Supabase, or use email and password below.",
+    not_configured: "The System is not configured. Add your Supabase keys to .env.local and restart the server.",
+  };
+  const errorMessage = params.error ? errors[params.error] : undefined;
+
   return (
     <AuthShell
       eyebrow="[SYSTEM] IDENTITY CHECK"
@@ -24,10 +33,8 @@ export default async function LoginPage({
       subtitle="Authenticate to reopen your status window, resume your streak and continue toward the next rank."
     >
       {isSupabaseConfigured ? null : <ConfigNotice />}
-      {params.error === "profile_missing" ? (
-        <p className="mb-4 rounded-lg border border-ember/35 bg-ember/10 px-3 py-2.5 text-xs text-ember">
-          That account has no Hunter record. Try signing up again or contact the operator.
-        </p>
+      {errorMessage ? (
+        <p className="mb-4 rounded-lg border border-ember/35 bg-ember/10 px-3 py-2.5 text-xs text-ember">{errorMessage}</p>
       ) : null}
       <LoginForm next={next} />
     </AuthShell>
