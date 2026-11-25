@@ -173,6 +173,166 @@ if (missingFunction(friendRequest)) {
   record(friendRequest.status >= 400, "send_friend_request() requires auth", `status ${friendRequest.status}`);
 }
 
+// 8. Column-level exposure (requires 0012)
+const tzProbe = await call("/rest/v1/profiles?select=timezone&limit=1");
+record(
+  tzProbe.status >= 400,
+  "anon cannot read behavioural profile columns",
+  `status ${tzProbe.status}`,
+);
+
+// 9. Live cross-user isolation
+//    Two throwaway accounts prove that RLS blocks cross-user reads on the
+//    real project, not just in the local Postgres test harness.
+function authHeaders(token) {
+  return { apikey: key, Authorization: `Bearer ${token}` };
+}
+
+async function api(path, { token, method = "GET", body } = {}) {
+  const response = await fetch(`${url.replace(/\/$/, "")}${path}`, {
+    method,
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  return { status: response.status, body: payload };
+}
+
+async function makeHunter(label) {
+  const stamp = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+  const email = `verify-${label}-${stamp}@hunter-verify.test`;
+  const password = `Verify-${stamp}-Aa1`;
+  const response = await fetch(`${url.replace(/\/$/, "")}/auth/v1/signup`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const payload = await response.json().catch(() => null);
+  return {
+    email,
+    password,
+    token: payload?.access_token ?? payload?.session?.access_token ?? null,
+    userId: payload?.user?.id ?? payload?.id ?? null,
+  };
+}
+
+const hunterA = await makeHunter("a");
+const hunterB = await makeHunter("b");
+
+if (!hunterA.token || !hunterB.token) {
+  console.log(
+    "skip  live cross-user isolation - signup returned no session.\n" +
+      "      Turn off Authentication > Providers > Email > Confirm email, then rerun,\n" +
+      "      or run the local suite instead: npm run db:test",
+  );
+} else {
+  const randomToken = crypto.randomUUID();
+  const started = await api("/rest/v1/rpc/start_study_session", {
+    token: hunterA.token,
+    method: "POST",
+    body: { p_planned_seconds: 600, p_client_token: randomToken },
+  });
+  const sessionId = started.body?.session_id ?? null;
+  record(Boolean(sessionId), "hunter A can start a study session", `status ${started.status}`);
+
+  const peekAll = await api("/rest/v1/study_sessions?select=id", { token: hunterB.token });
+  record(
+    Array.isArray(peekAll.body) && peekAll.body.length === 0,
+    "hunter B sees no study sessions at all",
+    `${Array.isArray(peekAll.body) ? peekAll.body.length : "?"} rows`,
+  );
+
+  if (sessionId) {
+    const peekOne = await api(`/rest/v1/study_sessions?select=id&id=eq.${sessionId}`, { token: hunterB.token });
+    record(
+      Array.isArray(peekOne.body) && peekOne.body.length === 0,
+      "hunter B cannot read hunter A's session by id",
+      `${Array.isArray(peekOne.body) ? peekOne.body.length : "?"} rows`,
+    );
+
+    const hijack = await api("/rest/v1/rpc/complete_study_session", {
+      token: hunterB.token,
+      method: "POST",
+      body: { p_session: sessionId },
+    });
+    record(hijack.status >= 400, "hunter B cannot complete hunter A's session", `status ${hijack.status}`);
+  }
+
+  const ledgerPeek = await api(`/rest/v1/xp_transactions?select=amount&user_id=eq.${hunterA.userId}`, {
+    token: hunterB.token,
+  });
+  record(
+    Array.isArray(ledgerPeek.body) && ledgerPeek.body.length === 0,
+    "hunter B cannot read hunter A's XP ledger",
+    `${Array.isArray(ledgerPeek.body) ? ledgerPeek.body.length : "?"} rows`,
+  );
+
+  const forgeXp = await api("/rest/v1/rpc/update_my_profile", {
+    token: hunterB.token,
+    method: "POST",
+    body: { p_display_name: "forged" },
+  });
+  const selfPatch = await api(`/rest/v1/profiles?id=eq.${hunterB.userId}`, {
+    token: hunterB.token,
+    method: "PATCH",
+    body: { xp_total: 999999, level: 99, rank: "S" },
+  });
+  const afterPatch = await api("/rest/v1/rpc/hunter_overview", {
+    token: hunterB.token,
+    method: "POST",
+    body: {},
+  });
+  const overview = afterPatch.body?.profile ?? afterPatch.body?.hunter ?? afterPatch.body ?? {};
+  record(
+    Number(overview?.xp_total ?? -1) === 0 && String(overview?.rank ?? "") !== "S",
+    "a hunter cannot raise their own XP, level or rank",
+    `patch ${selfPatch.status}, profile edit ${forgeXp.status}`,
+  );
+
+  const forgeLedger = await api("/rest/v1/xp_transactions", {
+    token: hunterB.token,
+    method: "POST",
+    body: { user_id: hunterB.userId, source_type: "bonus", amount: 5000 },
+  });
+  record(forgeLedger.status >= 400, "a hunter cannot insert XP rows directly", `status ${forgeLedger.status}`);
+
+  const board = await call("/rest/v1/rpc/leaderboard", {
+    method: "POST",
+    body: JSON.stringify({ p_period: "all", p_limit: 5, p_offset: 0, p_search: null }),
+  });
+  const allowed = new Set([
+    "rank_position",
+    "user_id",
+    "username",
+    "display_name",
+    "avatar_url",
+    "hunter_rank",
+    "level",
+    "period_xp",
+    "is_me",
+  ]);
+  const leaked = Array.isArray(board.body)
+    ? [...new Set(board.body.flatMap((row) => Object.keys(row)))].filter((field) => !allowed.has(field))
+    : [];
+  record(leaked.length === 0, "leaderboard rows carry only public fields", leaked.join(", ") || "no extra fields");
+
+  for (const hunter of [hunterA, hunterB]) {
+    const cleaned = await api("/rest/v1/rpc/delete_my_account", {
+      token: hunter.token,
+      method: "POST",
+      body: {},
+    });
+    if (cleaned.status >= 400) {
+      console.log(`note  remove the throwaway account manually: ${hunter.email}`);
+    }
+  }
+}
+
 const failed = results.filter((result) => !result.ok);
 console.log(
   failed.length === 0

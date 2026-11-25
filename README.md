@@ -81,6 +81,7 @@ Open **SQL Editor** in the Supabase dashboard and run each file in
 | `0009_social_friends.sql` | `friendships` table + RLS, request/accept/decline/remove RPCs, hunter search, `friend_leaderboard()` |
 | `0010_guilds.sql` | `guilds` + `guild_members` tables + RLS, create/join/leave/role RPCs, `guild_leaderboard()`, `guild_detail()` |
 | `0011_seasons.sql` | `seasons` catalog (generated), `current_season()`, `season_leaderboard()`, `previous_season_summary()`, `my_season_standing()`, PUBLIC-execute hardening |
+| `0012_public_profile_columns.sql` | Column-level grants on `profiles`: anonymous readers get the public hunter card only, not `timezone`, `daily_goal_minutes`, `role` or `last_study_date` |
 
 With the Supabase CLI instead:
 
@@ -130,9 +131,31 @@ explicit "System offline" screen instead of failing silently.
 npm run verify:supabase
 ```
 
-Checks that the migrations landed, the catalog is seeded, the public board works
-anonymously, `study_sessions` is invisible to anonymous visitors, and direct XP
-inserts are rejected.
+This is the gate before any further development: it exits non-zero if anything
+is wrong, and it refuses to run at all when credentials are missing rather than
+assuming the project is configured.
+
+What it checks against **your** project:
+
+| # | Check |
+| --- | --- |
+| 1 | Project reachable, auth settings readable |
+| 2 | Catalog seeded (`sets` / quests / achievements from `0006`) |
+| 3 | `progression_config` readable |
+| 4 | `leaderboard()` callable by an anonymous visitor |
+| 5 | Private surfaces closed to anon: `study_sessions`, `xp_transactions`, `subjects`, `notifications` |
+| 6 | `avatars` bucket exists and is public-read (`0008`) |
+| 7 | Guild board callable by anon; `friendships` hidden from anon; `send_friend_request` refuses anon (`0009`/`0010`) |
+| 8 | Anonymous readers cannot select behavioural `profiles` columns (`0012`) |
+| 9 | **Live cross-user isolation**: signs up two throwaway hunters, then proves B cannot read A's session by id, cannot read A's XP ledger, cannot complete A's session, cannot raise its own XP/level/rank, and cannot insert XP rows; finally checks that leaderboard rows carry only public fields and deletes both accounts |
+
+Check 9 needs *Confirm email* switched off (or you will see a `skip` line with
+instructions, not a failure). The throwaway accounts are named
+`verify-*@hunter-verify.test` and are self-deleted at the end; if deletion is
+blocked, the script prints the address to remove by hand.
+
+If you only want to test the database without a live project, `npm run db:test`
+does the same at the SQL level against a local Postgres.
 
 ---
 
@@ -227,7 +250,7 @@ npm run lint           # ESLint (next/core-web-vitals)
 npm run build          # production build, 17 routes
 ```
 
-### Database test suite (227 assertions)
+### Database test suite (247 assertions)
 
 `scripts/db-test.mjs` recreates a scratch database, applies all migrations and
 runs `supabase/tests/10_engine_tests.sql`, which exercises the real logic:
