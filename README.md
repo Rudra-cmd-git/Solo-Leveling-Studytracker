@@ -66,8 +66,20 @@ npm install
 
 ### 3. Apply the migrations
 
-Open **SQL Editor** in the Supabase dashboard and run each file in
-`supabase/migrations/` **in order**, one at a time:
+**Easiest path — one paste:**
+
+```powershell
+npm run db:bundle
+Get-Content supabase\apply_all.sql | Set-Clipboard
+```
+
+Then open your project → **SQL Editor** → **New query**, paste, and **Run**. That
+file is every migration below, in order, already concatenated (about 150 KB).
+It is generated, so edit the individual migrations and re-run `npm run db:bundle`
+rather than editing it by hand.
+
+**Or run them one at a time.** Open **SQL Editor** in the Supabase dashboard and
+run each file in `supabase/migrations/` **in order**:
 
 | File | Contents |
 | --- | --- |
@@ -429,7 +441,7 @@ Rules that the database enforces rather than the UI:
 ### Becoming the first admin
 
 The moderation console at `/admin` is invisible (404) unless your profile role is
-`moderator` or `admin`, and the API refuses to grant `admin` � that is deliberate,
+`moderator` or `admin`, and the API refuses to grant `admin` � that is deliberate,
 so nobody can escalate through the UI. The project owner sets it once, in the
 Supabase SQL editor:
 

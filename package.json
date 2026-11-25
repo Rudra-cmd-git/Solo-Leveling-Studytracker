@@ -12,7 +12,8 @@
     "db:contract": "node scripts/rpc-contract.mjs",
     "verify:supabase": "node scripts/verify-supabase.mjs",
     "check:layout": "node scripts/measure-layout.mjs",
-    "shots": "node scripts/screenshots.mjs"
+    "shots": "node scripts/screenshots.mjs",
+    "db:bundle": "node scripts/bundle-migrations.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
