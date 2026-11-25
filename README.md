@@ -453,3 +453,17 @@ From then on that admin can promote others to `moderator` from the console, and
 demote them again. Admins can never change their own role, so the console always
 keeps at least the owner account as staff. To hand the owner role to someone else,
 run the same SQL for their handle.
+
+### End-to-end XP check
+
+```powershell
+npm run verify:xp
+```
+
+`verify:supabase` proves the *permissions* are right; this proves the *reward path*
+works on your project. It creates a throwaway hunter, starts a real session,
+waits past `min_session_seconds`, heartbeats, completes it, and asserts four
+things: XP went up, the XP ledger matches the profile total, replaying
+`complete_study_session` pays nothing the second time, and the account is removed
+afterwards. It takes about 80 seconds because it waits for real study time —
+there is no shortcut, which is the point.

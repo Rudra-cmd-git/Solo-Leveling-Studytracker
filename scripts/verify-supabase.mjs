@@ -114,7 +114,7 @@ if (catalog.status === 200 && Array.isArray(catalog.body)) {
 }
 
 // 3. Configuration readable
-const ranks = await call("/rest/v1/rank_thresholds?select=code,min_xp&order=min_xp");
+const ranks = await call("/rest/v1/rank_thresholds?select=rank,min_xp&order=min_xp");
 record(
   ranks.status === 200 && Array.isArray(ranks.body) && ranks.body.length === 7,
   "Rank thresholds present",
@@ -266,7 +266,7 @@ if (!hunterA.token || !hunterB.token) {
     method: "POST",
     body: { p_planned_seconds: 600, p_client_token: randomToken },
   });
-  const sessionId = started.body?.session_id ?? null;
+  const sessionId = started.body?.session?.id ?? started.body?.session_id ?? started.body?.id ?? null;
   record(Boolean(sessionId), "hunter A can start a study session", `status ${started.status}`);
 
   const peekAll = await api("/rest/v1/study_sessions?select=id", { token: hunterB.token });

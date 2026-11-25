@@ -13,7 +13,8 @@
     "verify:supabase": "node scripts/verify-supabase.mjs",
     "check:layout": "node scripts/measure-layout.mjs",
     "shots": "node scripts/screenshots.mjs",
-    "db:bundle": "node scripts/bundle-migrations.mjs"
+    "db:bundle": "node scripts/bundle-migrations.mjs",
+    "verify:xp": "node scripts/verify-xp.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
